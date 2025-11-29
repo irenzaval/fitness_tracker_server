@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренер приседаний</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        #processedVideo {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            background: #000;
+        }
+        
+        .video-placeholder {
+            width: 100%;
+            height: 400px;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 18px;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #startBtn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        #resetBtn {
+            background: #ff9800;
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .feedback {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .feedback h3 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .feedback-list {
+            list-style: none;
+        }
+        
+        .feedback-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            backdrop-filter: blur(5px);
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        
+        .status.disconnected {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        
+        @media (max-width: 600px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            #processedVideo {
+                height: 300px;
+            }
+            
+            .video-placeholder {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏋️ Тренер приседаний</h1>
+            <p>Анализ техники в реальном времени с помощью нейросети</p>
+        </div>
+        
+        <div id="status" class="status disconnected">
+            🔴 Камера неактивна
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="repCount">0</div>
+                <div class="stat-label">Повторений</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="squatDepth">0%</div>
+                <div class="stat-label">Глубина приседа</div>
+            </div>
+        </div>
+        
+        <div class="video-container">
+            <video id="processedVideo" autoplay muted playsinline>
+                <div class="video-placeholder">
+                    Обработанное видео появится здесь...
+                </div>
+            </video>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" onclick="toggleCamera()">🎥 Включить камеру</button>
+            <button id="resetBtn" onclick="resetCounter()">🔄 Сбросить счетчик</button>
+        </div>
+        
+        <div class="feedback">
+            <h3>💡 Обратная связь</h3>
+            <ul class="feedback-list" id="feedbackList">
+                <li>Включите камеру для начала анализа</li>
+            </ul>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Инструкция:</h3>
+            <ul>
+                <li>Встаньте так, чтобы в кадре было всё тело</li>
+                <li>Лучше всего работает при виде сбоку (в профиль)</li>
+                <li>Держите спину прямой во время приседаний</li>
+                <li>Следите, чтобы колени не выходили за стопы</li>
+                <li>Опускайтесь до параллели бедер с полом</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let isCameraActive = false;
+        let localStream = null;
+        let processingInterval = null;
+        let frameInterval = null;
+        
+        const processedVideo = document.getElementById('processedVideo');
+        const repCountElement = document.getElementById('repCount');
+        const squatDepthElement = document.getElementById('squatDepth');
+        const feedbackList = document.getElementById('feedbackList');
+        const statusElement = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        
+        // Получаем IP адрес сервера для отображения
+        const serverUrl = `${window.location.protocol}//${window.location.host}`;
+        
+        async function toggleCamera() {
+            if (isCameraActive) {
+                stopCamera();
+            } else {
+                await startCamera();
+            }
+        }
+        
+        async function startCamera() {
+            try {
+                statusElement.textContent = "🟡 Подключаемся к камере...";
+                statusElement.className = "status disconnected";
+                
+                // Запрашиваем доступ к камере
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'environment' // Предпочитаем заднюю камеру
+                    },
+                    audio: false
+                });
+                
+                // Создаем временный видео элемент для захвата кадров
+                const tempVideo = document.createElement('video');
+                tempVideo.srcObject = localStream;
+                tempVideo.playsInline = true;
+                await tempVideo.play();
+                
+                isCameraActive = true;
+                startBtn.textContent = "⏹️ Выключить камеру";
+                statusElement.textContent = "🟢 Камера активна - начинайте приседать!";
+                statusElement.className = "status connected";
+                
+                // Запускаем отправку кадров на сервер
+                startFrameProcessing(tempVideo);
+                
+                // Запускаем получение обработанных кадров
+                startReceivingFrames();
+                
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                statusElement.textContent = "❌ Ошибка доступа к камере";
+                statusElement.className = "status disconnected";
+                alert('Не удалось получить доступ к камере. Убедитесь, что вы предоставили разрешение.');
+            }
+        }
+        
+        function stopCamera() {
+            isCameraActive = false;
+            startBtn.textContent = "🎥 Включить камеру";
+            statusElement.textContent = "🔴 Камера неактивна";
+            statusElement.className = "status disconnected";
+            
+            // Останавливаем потоки
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            // Очищаем интервалы
+            if (processingInterval) {
+                clearInterval(processingInterval);
+                processingInterval = null;
+            }
+            if (frameInterval) {
+                clearInterval(frameInterval);
+                frameInterval = null;
+            }
+            
+            // Очищаем видео
+            processedVideo.srcObject = null;
+            
+            // Обновляем фидбэк
+            updateFeedback(['Включите камеру для начала анализа']);
+        }
+        
+        function startFrameProcessing(videoElement) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            processingInterval = setInterval(async () => {
+                if (!isCameraActive) return;
+                
+                try {
+                    // Устанавливаем размеры canvas как у видео
+                    canvas.width = videoElement.videoWidth;
+                    canvas.height = videoElement.videoHeight;
+                    
+                    // Рисуем текущий кадр на canvas
+                    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                    
+                    // Конвертируем в base64
+                    const frameData = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    // Отправляем на сервер
+                    await fetch('/upload_frame', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ image: frameData })
+                    });
+                    
+                } catch (error) {
+                    console.error('Error sending frame:', error);
+                }
+            }, 100); // 10 FPS
+        }
+        
+        function startReceivingFrames() {
+            frameInterval = setInterval(async () => {
+                if (!isCameraActive) return;
+                
+                try {
+                    const response = await fetch('/get_processed_frame');
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        // Обновляем видео
+                        processedVideo.src = data.image;
+                        
+                        // Обновляем статистику
+                        repCountElement.textContent = data.rep_count;
+                        squatDepthElement.textContent = data.squat_depth + '%';
+                        
+                        // Обновляем фидбэк
+                        if (data.feedback && data.feedback.length > 0) {
+                            updateFeedback(data.feedback);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error receiving frame:', error);
+                }
+            }, 100); // 10 FPS
+        }
+        
+        async function resetCounter() {
+            try {
+                const response = await fetch('/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                repCountElement.textContent = data.rep_count;
+                
+            } catch (error) {
+                console.error('Error resetting counter:', error);
+            }
+        }
+        
+        function updateFeedback(messages) {
+            feedbackList.innerHTML = '';
+            messages.forEach(message => {
+                const li = document.createElement('li');
+                li.textContent = message;
+                feedbackList.appendChild(li);
+            });
+        }
+        
+        // Показываем IP сервера при загрузке
+        window.addEventListener('load', () => {
+            console.log(`Сервер доступен по адресу: ${serverUrl}`);
+        });
+        
+        // Останавливаем камеру при закрытии страницы
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
+        });
+    </script>
+</body>
+</html>
